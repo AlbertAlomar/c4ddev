@@ -1,0 +1,3 @@
+# https://github.com/NiklasRosenstein/versionupgrade
+tag v{VERSION}
+upgrade nodepy.json:\s*"version": "{VERSION}"

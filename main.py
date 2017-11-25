@@ -27,7 +27,7 @@ import json
 import sys
 import types
 
-require.context.path.append(os.path.join(__directory__, 'lib'))
+require.context.path.append(os.path.join(str(module.directory), 'lib'))
 require('c4ddev/__res__', exports=False).namespace.exports = __res__
 
 # Pre-load all components of the c4ddev library, since some require third
@@ -41,7 +41,7 @@ require('c4ddev/scripting/localimport')
 
 def load_extensions():
   extensions = []
-  ext_dir = os.path.join(__directory__, 'plugins')
+  ext_dir = os.path.join(str(module.directory), 'plugins')
   for file in os.listdir(ext_dir):
     file = os.path.join(ext_dir, file)
     if file.endswith('.py'):
@@ -69,7 +69,7 @@ except ImportError as exc:
   c4ddev.has_cpp_extensions = False
 else:
   c4ddev.has_cpp_extensions = True
-with open(os.path.join(__directory__, 'package.json')) as fp:
+with open(os.path.join(str(module.directory), 'nodepy.json')) as fp:
   c4ddev.__version__ = json.load(fp)['version']
 c4ddev.require = require
 

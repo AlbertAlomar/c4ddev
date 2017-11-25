@@ -45,7 +45,7 @@ try:
 except ImportError:
   from pipes import quote as _quote
 
-with open(os.path.join(__directory__, 'package.json')) as fp:
+with open(os.path.join(str(module.directory), 'nodepy.json')) as fp:
   version = json.load(fp)['version']
 
 resource = require('./lib/c4ddev/resource')
@@ -682,7 +682,7 @@ def license(ctx, name, list, short, python, c, java):
   Output a license string, optionally formatted for a specific language.
   """
 
-  directory = os.path.join(__directory__, 'licenses')
+  directory = os.path.join(str(module.directory), 'licenses')
   if list:
     for name in sorted(os.listdir(directory)):
       print(name)

@@ -1,0 +1,29 @@
+{
+  "name": "@NiklasRosenstein/c4ddev",
+  "version": "0.1.6",
+  "license": "MIT",
+  "description": "swiss army knife for Cinema 4D plugin development",
+  "repository": "https://github.com/NiklasRosenstein/c4ddev/",
+  "authors": [
+    "rosensteinniklas@gmail.com"
+  ],
+  "scripts": {
+    "build-loader": "cli build-loader -c -o c4ddev-loader.pyp"
+  },
+  "bin": {
+    "c4ddev": "cli"
+  },
+  "cfg(never).dependencies": {
+    "@nodepy/standalone-builder": "--optional ~0.0.5"
+  },
+  "pip_dependencies": {
+    "bs4": "",
+    "click": ">=6.7",
+    "nr": ">=1.4.3"
+  },
+  "include": [
+    "cli.py",
+    "main.py",
+    "lib"
+  ]
+}

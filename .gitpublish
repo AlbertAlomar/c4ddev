@@ -1,3 +1,0 @@
-tag v{VERSION}
-upgrade package.json:\s*"version": "{VERSION}"
-upgrade docs/config.toml:\s*version = "{VERSION}"
