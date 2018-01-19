@@ -26,7 +26,9 @@ from __future__ import print_function
 import collections
 import codecs
 import errno
+import itertools
 import glob
+import operator
 import os
 import re
 import string
@@ -213,6 +215,11 @@ def export_symbols(format, res_dir=None, outfile=None, settings=None):
     A string pointing to a C4D plugin resource directory or a list of such.
     Defaults to the ``res/`` directory of the current working directory.
   :param outfile: The output file name or None to print to stdout.
+  :param settings: A dictionary with more settings.
+
+    - project_path
+    - sort_by_id
+    - group_symbols
   '''
 
   if format not in ('json', 'file', 'class'):
@@ -228,10 +235,6 @@ def export_symbols(format, res_dir=None, outfile=None, settings=None):
   else:
     dirlist = res_dir
 
-  # Symbol name -> tuple of (value, filename).
-  symbols = {}
-  desc_symbols = {}
-
   def merge_symbols(filename, dest):
     print(filename)
     symbols, masked = parse_symbols(filename)
@@ -246,60 +249,74 @@ def export_symbols(format, res_dir=None, outfile=None, settings=None):
           has_value), file=sys.stderr)
       dest[symbol] = (value, filename)
 
+  # Maps symbol ID to (ID, filename).
+  symbols = {}
+  # Parse all symbols.
   for dirname in dirlist:
     files = get_resource_files(dirname)
     if files is None:
       raise ValueError('not a resource directory: {!r}'.format(dirname))
-
     merge_symbols(files['c4d_symbols'], symbols)
     for filename in files['description']:
-      merge_symbols(filename, desc_symbols)
+      merge_symbols(filename, symbols)
 
-  # Unpack the values from the (value, filename) tuples.
-  unpack = lambda x: dict((k, v) for k, (v, __) in x.items())
-  symbols = unpack(symbols)
-  desc_symbols = unpack(desc_symbols)
+  fp = open(outfile, 'w') if outfile else None
+  try:
+    if format in ('class', 'file'):
+      project_path = settings.get('project_path') or ''
+      formatted_symbols = preformat_symbols(
+        symbols,
+        sort_by_id=settings.get('sort_by_id', False),
+        group_symbols=settings.get('group_symbols', False)
+      )
+      template = TEMPLATE_FILE if format == 'file' else TEMPLATE_CLASS
+      print(
+        render_template(
+          template,
+          symbols=formatted_symbols,
+          project_path=repr(project_path)
+        ),
+        file=fp or sys.stdout
+      )
+    else:
+      # Unpack the values from the (value, filename) tuples.
+      symbols = {k: v[0] for k, v in symbols.items()}
+      json.dump(all_syms, fp or sys.stdout)
+  finally:
+    if fp: fp.close()
 
-  fn = globals()['format_symbols_' + format]
-  if outfile:
-    with open(outfile, 'w') as fp:
-      fn(symbols, desc_symbols, fp, settings)
+
+def preformat_symbols(symbols, sort_by_id=False, group_symbols=False):
+  """
+  Takes as input a dictionary that maps symbols to a tuple of their
+  numeric value and the file that the symbol originates from (as in
+  #Dict[str, (int, str)]), this function generates Python code that
+  assigns a variable for every symbol in *symbols*. Returns the string
+  `'pass'` if *symbols* is empty.
+  """
+
+  if group_symbols:
+    key = lambda x: x[1][1]  # symbol filename
+    groups = {
+      filename: [(x[0], x[1][0]) for x in grouper]
+      for filename, grouper in
+        itertools.groupby(sorted(symbols.items(), key=key), key)
+    }
   else:
-    fn(symbols, desc_symbols, sys.stdout, settings)
-    print()
+    groups = {None: [(k, v[0]) for k, v in symbols.items()]}
 
+  key = operator.itemgetter(1 if sort_by_id else 0)
+  [items.sort(key=key) for items in groups.values()]
 
-def format_symbols_json(symbols, desc_symbols, fp, settings):
-  all_syms = symbols.copy()
-  all_syms.update(desc_symbols)
-  json.dump(all_syms, fp)
-
-
-def format_symbols_file(symbols, desc_symbols, fp, settings):
-  project_path = settings.get('project_path') or ''
-  formatted = preformat_symbols(symbols, desc_symbols)
-  print(render_template(TEMPLATE_FILE, symbols=formatted,
-    project_path=repr(project_path)), file=fp)
-
-
-def format_symbols_class(symbols, desc_symbols, fp, settings):
-  formatted = preformat_symbols(symbols, desc_symbols)
-  print(render_template(TEMPLATE_CLASS, symbols=formatted), file=fp)
-
-
-def preformat_symbols(symbols, desc_symbols):
-  def preprocess(symbols):
-    if not symbols: return
-    for name, value in sorted(symbols.items(), key=lambda x: (x[0], x[1])):
+  lines = []
+  for group in groups:
+    if group_symbols: lines.append('# {}'.format(group))
+    for name, value in groups[group]:
       if not name.startswith('_'):
-        yield name + ' = ' + str(value)
-  formatted = []
-  formatted.extend(preprocess(symbols))
-  formatted.extend('')
-  formatted.extend(preprocess(desc_symbols))
-  if not symbols and not desc_symbols:
-    formatted.append('pass')
-  return '\n'.join(formatted)
+        lines.append('{} = {}'.format(name, value))
+  if not symbols:
+    lines.append('pass')
+  return '\n'.join(lines)
 
 
 def render_template(__template_string, **context):

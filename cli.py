@@ -112,17 +112,22 @@ def main():
 @click.option('-d', '--res-dir', metavar='DIRECTORY', multiple=True,
     help='One or more resource directories to parse for symbols. If the '
     'option is not specified, `res/` will be used.')
+@click.option('--sort-by-id', is_flag=True, default=False,
+    help='Sort the symbols by their numeric ID rather than by name.')
+@click.option('--group-symbols', is_flag=True, default=False,
+    help='Group symbols from the same file.')
 @click.option('--project-path',
     help='Only with the FILE output format. Specifies the path relative to '
     'the generated file which will be used as the project path.')
-def symbols(format, outfile, res_dir, project_path):
+def symbols(format, outfile, res_dir, project_path, sort_by_id, group_symbols):
   """
   Extracts resource symbols.
   """
 
   if not res_dir:
     res_dir = ['res']
-  settings = {'project_path': project_path}
+  settings = {'project_path': project_path, 'sort_by_id': sort_by_id,
+              'group_symbols': group_symbols}
   resource.export_symbols(format, res_dir, outfile=outfile, settings=settings)
 
 
