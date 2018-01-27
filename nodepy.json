@@ -19,7 +19,8 @@
   "pip_dependencies": {
     "bs4": "",
     "click": ">=6.7",
-    "nr": ">=1.4.3"
+    "nr": ">=1.4.3",
+    "requests": ">=2.18.4"
   },
   "include": [
     "cli.py",
